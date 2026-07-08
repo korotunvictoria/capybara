@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Моя капибара</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23DCE3D0'/%3E%3Cpath d='M49.5 18.5c-10.8-.8-19.5 2.2-25.5 8.1-7.1 7.1-8 16.9-8 16.9s9.8-.9 16.9-8c5.9-6 8.9-14.7 8.1-25.5 4.3 2 7 4.8 8.5 8.5z' fill='%235FA350'/%3E%3Cpath d='M20 44c7-2.1 18.2-10.1 24-24' stroke='%232C3E2D' stroke-width='3.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="app-bg">
+    
+    <!-- Стартовый экран -->
+    <div id="welcome-overlay" class="welcome-screen">
+        <div class="zen-mist mist-1"></div>
+        <div class="zen-mist mist-2"></div>
+        <div class="zen-mist mist-3"></div>
+
+        <div class="welcome-card">
+            <div class="welcome-badge">Твой верный друг</div>
+            <h2 class="welcome-title">Привет!<br>Я твоя капибара.</h2>
+            <div class="welcome-text">
+                <p>Работать за компьютером бывает утомительно, поэтому давай заботиться друг о друге!</p>
+                <p>Следи за моими показателями — они тают, пока ты трудишься. Если какая-то шкала упадёт ниже <span>10 %</span>, я начну грустить и звать тебя на помощь.</p>
+                <p>Делай полезные паузы вместе со мной! Твоё здоровье — это моё здоровье.</p>
+            </div>
+            <button onclick="closeWelcome()" class="btn-start">Давай начнём!</button>
+            <p class="welcome-note">* Пузыри можно лопать! А клик по капибаре создаст ещё больше пузырей.</p>
+        </div>
+
+        <div id="welcome-capybara-wrapper" class="welcome-image-container">
+            <div class="glow-effect"></div>
+            <img id="welcome-capy-img" src="capybara-welcome.png" alt="Добро пожаловать" class="capy-idle">
+        </div>
+    </div>
+
+    <!-- ФОН ОСНОВНОГО ПРИЛОЖЕНИЯ -->
+    <div class="texture-overlay"></div>
+    <div class="zen-mist mist-1"></div>
+    <div class="zen-mist mist-2"></div>
+    <div class="zen-mist mist-3"></div>
+    <div id="fireflies-container">
+        <div class="firefly fly-a" style="top: 15%; left: 20%; animation-delay: 0s;"></div>
+        <div class="firefly fly-b" style="top: 30%; left: 75%; animation-delay: 1.5s;"></div>
+        <div class="firefly fly-c" style="top: 60%; left: 15%; animation-delay: 3s;"></div>
+        <div class="firefly fly-a" style="top: 80%; left: 50%; animation-delay: 0.5s;"></div>
+        <div class="firefly fly-b" style="top: 45%; left: 40%; animation-delay: 2.2s;"></div>
+        <div class="firefly fly-c" style="top: 10%; left: 85%; animation-delay: 4.1s;"></div>
+    </div>
+
+    <!-- Верхняя панель -->
+    <header class="top-panel">
+        <!-- Твоя обновленная инструкция -->
+        <div id="meeting-instruction" class="meeting-instruction">
+            <span class="focus-title">Фокусируйся с капибарой!</span>
+            Во время созвонов слушай коллег, кликай на капибару и лопай пузыри. <p>Это поможет занять руки и лучше концентрироваться на беседе.</p>
+        </div>
+
+        <!-- Тумблер -->
+        <label class="meeting-toggle-wrapper">
+            <span class="toggle-label">На созвоне</span>
+            <div class="toggle-switch">
+                <input type="checkbox" id="meeting-toggle">
+                <div class="toggle-bg"></div>
+                <div class="toggle-dot"></div>
+            </div>
+        </label>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div id="capybara-wrapper" class="capybara-section">
+            <div class="fern-container">
+                <img class="fern-leaf-img fern-left" src="fern-left.png" alt="папоротник">
+                <img class="fern-leaf-img fern-center" src="fern-central.png" alt="папоротник">
+                <img class="fern-leaf-img fern-right" src="fern-right.png" alt="папоротник">
+            </div>
+            <img id="capybara-img" src="capybara-main.png" alt="Моя Капибара" class="capybara-character capy-idle">
+            <div id="purr-text" class="purr-text">мррр...</div>
+            <div id="sleep-particles" class="hidden">
+                <div class="zzz-particle zzz-1">Z</div>
+                <div class="zzz-particle zzz-2">z</div>
+                <div class="zzz-particle zzz-3">z</div>
+            </div>
+        </div>
+
+        <div id="controls-container" class="cards-grid">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title text-water"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg> Водичка</span>
+                    <span id="val-water" class="card-value text-water">100%</span>
+                </div>
+                <div class="progress-track"><div id="bar-water" class="progress-fill bg-water"></div></div>
+                <button onclick="startAction('water')" class="btn btn-water">Сделать глоток</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title text-eyes"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> Глаза</span>
+                    <span id="val-eyes" class="card-value text-eyes">100%</span>
+                </div>
+                <div class="progress-track"><div id="bar-eyes" class="progress-fill bg-eyes"></div></div>
+                <button onclick="startAction('eyes')" class="btn btn-eyes">Поморгать</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title text-stretch"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> Потягушки</span>
+                    <span id="val-stretch" class="card-value text-stretch">100%</span>
+                </div>
+                <div class="progress-track"><div id="bar-stretch" class="progress-fill bg-stretch"></div></div>
+                <button onclick="startAction('stretch')" class="btn btn-stretch">Размяться</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title text-breath"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"></path></svg> Дыхание</span>
+                    <span id="val-breath" class="card-value text-breath">100%</span>
+                </div>
+                <div class="progress-track"><div id="bar-breath" class="progress-fill bg-breath"></div></div>
+                <button onclick="startAction('breath')" class="btn btn-breath">Выдохнуть</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Окно зарядки -->
+    <div id="action-overlay" class="modal-overlay" onclick="completeAction()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <button onclick="completeAction()" class="modal-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            <div id="action-icon" class="modal-video-container"></div>
+            <div id="action-text" class="modal-text">Делаем зарядку...</div>
+            <div class="progress-track">
+                <div id="action-progress" class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
