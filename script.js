@@ -17,9 +17,9 @@ const DRAIN_TIMES = {
 
 const TIPS = {
     water: ["Сходи попей воды, чтобы освежить тело и вернуть фокус."],
-    eyes: ["Разогрей ладони трением, накрой ими закрытые глаза и расслабься в темноте.", "Переводи взгляд с кончика носа на дальнюю точку за окном каждые 3–5 секунд.", "Быстро поморгай 10 секунд, чтобы увлажнить глаза."],
+    eyes: ["Разогрей ладони трением, накрой ими закрытые глаза и расслабься.", "Переводи взгляд с носа на дальнюю точку за окном.", "Быстро поморгай 10 секунд, чтобы увлажнить глаза."],
     stretch: ["Сцепи пальцы рук в замок над головой и потянись вверх.", "Медленно поверни голову вправо на 3 секунды, а затем влево.", "Подними плечи к ушам, напряги и резко сбрось вниз."],
-    breath: ["Вдохни носом, выдохни через приоткрытый рот.", "Дыши по «квадрату»: вдох, задержка дыхания, выдох, пауза перед следующим вдохом.", "Зажми левую ноздрю — вдох. Закрой правую — выдох."]
+    breath: ["Вдохни носом, выдохни через приоткрытый рот.", "Дыши по «квадрату»: вдох, задержка дыхания, выдох, пауза.", "Зажми левую ноздрю — вдох. Закрой правую — выдох."]
 };
 
 const VIDEOS = {
@@ -68,14 +68,15 @@ function loadState() {
         if (state.isMeeting === undefined) state.isMeeting = false;
     }
     
+    // 1. СНАЧАЛА рассчитываем прошедшее оффлайн-время, пока инициализация UI не сбросила таймеры
+    calculateOfflineDrain();
+
+    // 2. Только после расчета износа настраиваем тумблер режима созвона
     const toggleInput = document.getElementById('meeting-toggle');
     if (toggleInput) {
         toggleInput.checked = !!state.isMeeting;
         applyMeetingModeUI(!!state.isMeeting, true);
     }
-
-    // Рассчитываем прошедшее оффлайн-время
-    calculateOfflineDrain();
 
     // Проверка первого запуска для приветственного экрана
     const welcomeSeen = localStorage.getItem('chillbara_welcome_seen');
@@ -107,6 +108,10 @@ function closeWelcome() {
     document.querySelectorAll('#welcome-overlay .glass-bubble').forEach(el => el.remove());
     activeWelcomeBubbles = 0;
 
+    // После закрытия приветственного экрана фиксируем время старта, чтобы пошел износ
+    state.lastUpdated = Date.now();
+    saveState();
+
     setTimeout(() => {
         const welcomeEl = document.getElementById('welcome-overlay');
         if(welcomeEl) welcomeEl.remove(); 
@@ -116,7 +121,6 @@ function closeWelcome() {
 // Рассчитываем оффлайн-уменьшение шкал при входе в игру
 function calculateOfflineDrain() {
     if (state.isMeeting || isWelcomeOpen) { 
-        state.lastUpdated = Date.now(); 
         return; 
     }
     
@@ -126,9 +130,8 @@ function calculateOfflineDrain() {
             state.stats[key] = Math.max(0, state.stats[key] - (timePassed / DRAIN_TIMES[key]) * 100);
         });
     }
-    state.lastUpdated = Date.now();
+    // НЕ перезаписываем state.lastUpdated здесь, это сделает вызывающая функция или последующий сейв
     updateUI();
-    saveState();
 }
 
 function calculateDrain() {
@@ -259,7 +262,11 @@ function applyMeetingModeUI(active, isInitial = false) {
         img.classList.remove('sleep-state');
         if (zzzParticles) zzzParticles.classList.add('hidden');
         document.querySelectorAll('.glass-bubble').forEach(el => el.remove());
-        state.lastUpdated = Date.now();
+        
+        // ИСПРАВЛЕНО: перезаписываем время оффлайна только при реальном переключении тумблера пользователем (не при старте)
+        if (!isInitial) {
+            state.lastUpdated = Date.now();
+        }
     }
     updateUI();
 }
@@ -377,7 +384,7 @@ const mainCapyHandler = (e) => {
     if (!state.isMeeting || isActionRunning || e.target.closest('.glass-bubble')) return; 
     let x, y;
     if (e.type === 'touchstart') {
-        // ИСПРАВЛЕНО: Гарантированное получение точных координат пальца при тапе на мобильном
+        // Гарантированное получение точных координат пальца при тапе на мобильном
         const touch = e.changedTouches[0];
         x = touch.clientX; 
         y = touch.clientY;
@@ -406,7 +413,7 @@ const welcomeCapyHandler = (e) => {
     if (e.target.closest('.glass-bubble')) return;
     let x, y;
     if (e.type === 'touchstart') {
-        // ИСПРАВЛЕНО: Гарантированное получение точных координат пальца на мобильном для стартового экрана
+        // Гарантированное получение точных координат пальца на мобильном для стартового экрана
         const touch = e.changedTouches[0];
         x = touch.clientX; 
         y = touch.clientY;
