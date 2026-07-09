@@ -8,6 +8,15 @@ const IMAGES = {
     welcomeClosed: "capybara-welcome-closed.png"
 };
 
+// ПРЕДЗАГРУЗКА КАРТИНОК (Решает проблему невидимого моргания в Инкогнито и при первом запуске)
+function preloadImages() {
+    for (const key in IMAGES) {
+        const img = new Image();
+        img.src = IMAGES[key];
+    }
+}
+preloadImages(); // Запускаем предзагрузку мгновенно при старте скрипта
+
 const DRAIN_TIMES = { 
     water: 2 * 60 * 60 * 1000,
     eyes: 45 * 60 * 1000,
@@ -130,7 +139,6 @@ function calculateOfflineDrain() {
             state.stats[key] = Math.max(0, state.stats[key] - (timePassed / DRAIN_TIMES[key]) * 100);
         });
     }
-    // НЕ перезаписываем state.lastUpdated здесь, это сделает вызывающая функция или последующий сейв
     updateUI();
 }
 
@@ -147,6 +155,29 @@ function calculateDrain() {
     saveState();
 }
 
+// ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ ДЛЯ КАРТИНКИ
+function getCapybaraImage() {
+    const isSad = Object.values(state.stats).some(val => val <= 10);
+
+    // 1. Режим созвона имеет абсолютный приоритет
+    if (state.isMeeting) {
+        return IMAGES.eyesClosed;
+    }
+
+    // 2. Фаза моргания
+    if (isBlinkingNow) {
+        return isSad ? IMAGES.sadClosed : IMAGES.eyesClosed;
+    }
+
+    // 3. Выполнение активности (тренировка/дыхание)
+    if (isActionRunning) {
+        return isSad ? IMAGES.sad : IMAGES.main;
+    }
+
+    // 4. Обычное состояние (грустная или веселая)
+    return isSad ? IMAGES.sad : IMAGES.main;
+}
+
 function updateUI() {
     Object.keys(state.stats).forEach(key => {
         const val = Math.round(state.stats[key]);
@@ -159,8 +190,13 @@ function updateUI() {
     const isSad = Object.values(state.stats).some(val => val <= 10);
     const img = document.getElementById('capybara-img');
 
+    // Обновляем картинку из единого источника правды
+    if (img) {
+        img.src = getCapybaraImage();
+    }
+
+    // Управление заголовком вкладки при плохом состоянии
     if (isSad && !state.isMeeting) {
-        if (!isBlinkingNow && !isActionRunning) img.src = IMAGES.sad;
         if (!tabAlarmInterval) {
             tabAlarmInterval = setInterval(() => { 
                 document.title = isAlarmActive ? "✨Пора сделать паузу" : "🫶 Позаботься о себе"; 
@@ -168,8 +204,11 @@ function updateUI() {
             }, 1000);
         }
     } else {
-        if (!state.isMeeting && !isBlinkingNow && !isActionRunning) img.src = IMAGES.main;
-        if (tabAlarmInterval) { clearInterval(tabAlarmInterval); tabAlarmInterval = null; document.title = "Моя Капибара"; }
+        if (tabAlarmInterval) { 
+            clearInterval(tabAlarmInterval); 
+            tabAlarmInterval = null; 
+            document.title = "Моя Капибара"; 
+        }
     }
 }
 
@@ -213,17 +252,19 @@ function completeAction() {
     const img = document.getElementById('capybara-img');
     
     // СБРОС АНИМАЦИИ ПРЕДЫДУЩЕГО ПРЫЖКА
-    img.classList.remove('capy-jump');
-    void img.offsetWidth; // Хак для мгновенного сброса анимации в браузере
-    if (jumpTimeout) clearTimeout(jumpTimeout);
+    if (img) {
+        img.classList.remove('capy-jump');
+        void img.offsetWidth; // Хак для мгновенного сброса анимации в браузере
+        if (jumpTimeout) clearTimeout(jumpTimeout);
 
-    img.classList.remove('capy-idle'); 
-    img.classList.add('capy-jump');    
-    jumpTimeout = setTimeout(() => { 
-        img.classList.remove('capy-jump'); 
-        img.classList.add('capy-idle'); 
-        jumpTimeout = null;
-    }, 900);
+        img.classList.remove('capy-idle'); 
+        img.classList.add('capy-jump');    
+        jumpTimeout = setTimeout(() => { 
+            img.classList.remove('capy-jump'); 
+            img.classList.add('capy-idle'); 
+            jumpTimeout = null;
+        }, 900);
+    }
 
     updateUI();
     saveState();
@@ -247,8 +288,7 @@ function applyMeetingModeUI(active, isInitial = false) {
             }
         }
         
-        img.src = IMAGES.eyesClosed;
-        img.classList.add('sleep-state');
+        if (img) img.classList.add('sleep-state');
         if (zzzParticles) zzzParticles.classList.remove('hidden');
     } else {
         bg.classList.remove('meeting-mode');
@@ -258,17 +298,15 @@ function applyMeetingModeUI(active, isInitial = false) {
             else { setTimeout(() => { if(!state.isMeeting && controls) { controls.style.opacity = '1'; controls.style.pointerEvents = 'auto'; } }, 50); }
         }
         
-        img.src = IMAGES.main;
-        img.classList.remove('sleep-state');
+        if (img) img.classList.remove('sleep-state');
         if (zzzParticles) zzzParticles.classList.add('hidden');
         document.querySelectorAll('.glass-bubble').forEach(el => el.remove());
         
-        // ИСПРАВЛЕНО: перезаписываем время оффлайна только при реальном переключении тумблера пользователем (не при старте)
         if (!isInitial) {
             state.lastUpdated = Date.now();
         }
     }
-    updateUI();
+    updateUI(); // Автоматически установит правильную картинку
 }
 
 document.getElementById('meeting-toggle').addEventListener('change', (e) => {
@@ -299,21 +337,29 @@ function playPopSound() {
     osc.start(); osc.stop(audioCtx.currentTime + 0.1);
 }
 
-// Моргание основной Капибары
+// БЕЗОПАСНОЕ МОРГАНИЕ основной Капибары
 setInterval(() => {
     if (isWelcomeOpen || state.isMeeting || isActionRunning || isBlinkingNow) return;
+    
     isBlinkingNow = true;
-    const img = document.getElementById('capybara-img');
-    const isSad = Object.values(state.stats).some(val => val <= 10);
-    img.src = isSad ? IMAGES.sadClosed : IMAGES.eyesClosed;
-    setTimeout(() => { if (!state.isMeeting && !isActionRunning) img.src = isSad ? IMAGES.sad : IMAGES.main; isBlinkingNow = false; }, 150);
+    updateUI(); // Закрываем глазки через обновление кадра
+
+    setTimeout(() => { 
+        isBlinkingNow = false; 
+        updateUI(); // Открываем глазки через обновление кадра
+    }, 150);
 }, 8000);
 
-// Моргание Капибары на приветственном экране
+// Моргание Капибары на приветственном экране (теперь со стабильной предзагрузкой!)
 setInterval(() => {
     if (!isWelcomeOpen) return;
     const img = document.getElementById('welcome-capy-img');
-    if (img) { img.src = IMAGES.welcomeClosed; setTimeout(() => { img.src = IMAGES.welcome; }, 150); }
+    if (img) { 
+        img.src = IMAGES.welcomeClosed; 
+        setTimeout(() => { 
+            if (isWelcomeOpen) img.src = IMAGES.welcome; 
+        }, 150); 
+    }
 }, 8000);
 
 function createGlassBubble(startX, startY, isWelcome = false) {
@@ -330,7 +376,6 @@ function createGlassBubble(startX, startY, isWelcome = false) {
     bubble.style.setProperty('--end-y', `${(Math.random() - 0.5) * window.innerHeight}px`);
     bubble.style.setProperty('--duration', `${3 + Math.random() * 2}s`);
 
-    // СЧЕТЧИК ПУЗЫРЕЙ НА СТАРТЕ: Корректно считаем живые пузыри
     if (isWelcome) {
         activeWelcomeBubbles++;
     }
@@ -357,7 +402,6 @@ function createGlassBubble(startX, startY, isWelcome = false) {
     const container = isWelcome ? document.getElementById('welcome-overlay') : document.body;
     if (container) container.appendChild(bubble);
 
-    // Удаление пузыря по таймауту
     setTimeout(() => { 
         if (bubble.parentNode) { 
             bubble.remove(); 
@@ -384,7 +428,6 @@ const mainCapyHandler = (e) => {
     if (!state.isMeeting || isActionRunning || e.target.closest('.glass-bubble')) return; 
     let x, y;
     if (e.type === 'touchstart') {
-        // Гарантированное получение точных координат пальца при тапе на мобильном
         const touch = e.changedTouches[0];
         x = touch.clientX; 
         y = touch.clientY;
@@ -413,7 +456,6 @@ const welcomeCapyHandler = (e) => {
     if (e.target.closest('.glass-bubble')) return;
     let x, y;
     if (e.type === 'touchstart') {
-        // Гарантированное получение точных координат пальца на мобильном для стартового экрана
         const touch = e.changedTouches[0];
         x = touch.clientX; 
         y = touch.clientY;
